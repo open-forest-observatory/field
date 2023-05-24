@@ -1,4 +1,4 @@
-# Code to take plot locs from different sources and standardize them into a common format
+# Code to prepare Yuba candidate plot locs based on existing datasets
 
 library(tidyverse)
 library(sf)
@@ -57,14 +57,12 @@ st_write(candidate, file.path(datadir, "tmp/candidate_plots_flt.gpkg"), delete_d
 # Priority is:
 # has VP data in N Yuba
 # has VP data outside N Yuba
-# tier A
-# tier B
 
 candidate = candidate |>
   mutate(priority1 = has_vp_data & in_n_yuba,
          priority2 = has_vp_data & !in_n_yuba,
-         priority3 = plot_tier %in% c("A", "A*"),
-         priority4 = plot_tier %in% c("B", "C"))
+         priority3 = !has_vp_data & in_n_yuba,
+         priority4 = !has_vp_data & !in_n_yuba)
 
 candidate$priority = 5
 candidate[candidate$priority4, "priority"] = 4
@@ -73,7 +71,7 @@ candidate[candidate$priority2, "priority"] = 2
 candidate[candidate$priority1, "priority"] = 1
 
 candidate = candidate |>
-  filter(priority %in% c(1,2,3,4))
+  filter(priority %in% c(1,2,3,4,5))
 
 # get the 
 
@@ -95,18 +93,51 @@ new_candidate = st_read(file.path(datadir, "/field-plot-locs/ny-addl-wf-pp/ny-ad
 new_candidate$plot_id = 1:nrow(new_candidate) + 500
 new_candidate$priority = 1
 
+candidate = candidate |> select(geometry = geom,
+                                everything())
+new_candidate = new_candidate |> select(everything())
+
 candidate_comb = bind_rows(candidate, new_candidate)
 # we want at least one from every prefix. within a prefix, prioritize using the priority tiers.
 # then try to get another of each prefix, also based on the priority tiers
 # to set this up, use a col for veg type prefix, then priority tiers
 
+
 candidate_comb = candidate_comb |>
-  mutate(new_full_plot_id = paste(cat_id, priority, plot_id, sep = "-"))
+  mutate(cat_id = str_pad(cat_id, width = 2, side = "left", pad = "0"),
+         yuba_plot_id = paste0("NY-", str_pad(plot_id, width = 3, side = "left", pad = "0"))) |>
+  mutate(new_full_plot_id = paste("NY", cat_id, priority, plot_id, sep = "-"))
+
+st_write(candidate_comb, file.path(datadir, "tmp/candidate_comb.gpkg"), delete_dsn = TRUE)
+
 
 ## Get whether they are in treatment areas
+trts1 = st_read(file.path(datadir, "planned-treatments/TrapperData.gdb"), layer = "Sleighville") |> select()
+trts2 = st_read(file.path(datadir, "planned-treatments/TrapperData.gdb"), layer = "Graveyard") |> select()
+trts3 = st_read(file.path(datadir, "planned-treatments/TrapperData.gdb"), layer = "AlaskaPeak") |> select()
+trts4 = st_read(file.path(datadir, "planned-treatments/TrapperData.gdb"), layer = "Rattlesnake_NYLRP_OrigSPA") |> select()
+trts = rbind(trts1, trts2, trts3, trts4)
 
+st_write(trts, file.path(datadir, "tmp/treatments.gpkg"), delete_dsn = TRUE)
 
 # make sure not too many are in planned treatments
-# make sure field sampling doesn't happen in planned treatment areas
+in_trt = st_intersects(candidate_comb, trts |> st_transform(st_crs(candidate_comb)), sparse = FALSE)
+in_trt = apply(in_trt, 1, any)
 
-# printout map and avenza map of the candidates
+candidate_comb$in_trt = in_trt
+
+# select desired cols
+candidate_comb = candidate_comb |>
+  mutate(Name = new_full_plot_id) |>
+  select(Name, plot_id = new_full_plot_id, simple_plot_id = yuba_plot_id, priority, cat_id, eveg_type, eveg_cover, eveg_treesize, in_trt, has_vp_data, in_n_yuba, orig_full_plot_id = full_plot_id) |>
+  arrange(priority, cat_id)
+
+candidate_comb = st_transform(candidate_comb, 4326)
+
+write_csv(candidate_comb, file.path(datadir, "for-drone-crew/plot-lists/site-list_NY_v1.csv"))
+st_write(candidate_comb, file.path(datadir, "selected-sites-master/site-centers_NY_v1.gpkg"), delete_dsn = TRUE)
+
+
+
+# Prioritiziong N yuba
+#Make sure you get at least one untreated for each veg type
