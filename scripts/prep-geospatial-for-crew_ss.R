@@ -26,7 +26,7 @@ plot(plots_dembuff)
 plots_dembuff = plots_dembuff |>
   arrange(plot_id)
 
-plots_buff = plots_dembuff |>
+plots_buff = plots_buff |>
   arrange(plot_id)
 
 plots = plots |>

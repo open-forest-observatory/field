@@ -15,10 +15,11 @@ datadir = readLines(here("data-dir.txt"), n = 1)
 # load plot *centers*
 plots = st_read(file.path(datadir, "selected-sites-master/site-centers_NY_v1.gpkg")) |>
   # remove the one plot way to the south
-  filter(simple_plot_id != "NY-143")
+  filter(!(simple_plot_id %in% c("NY-143", "NY-537"))) |>
+  st_transform(4326)
 
 # buffer by the right amount, minimum acceptable drone footprint. 30 m radius field plots + 30 m spatial error + 50 m drone photo overlap
-plots_buff = plots |> st_transform(3310) |> st_buffer(30+30+50) |> st_simplify(dTolerance = 10)
+plots_buff = plots |> st_transform(3310) |> st_buffer(30+30+50) |> st_simplify(dTolerance = 10) |> st_transform(4326)
 plot(plots_buff)
 
 # buffer more to get dem for maximum possible expansion: 1.5 km or 1500 m radius
@@ -39,6 +40,15 @@ st_write(plots, file.path(datadir, "for-drone-crew/KML/site-points_NY_v1.kml"), 
 st_write(plots_buff, file.path(datadir, "for-drone-crew/KML/site-polys_NY_v1.kml"), delete_dsn = TRUE)
 # ***---> for DJI controller, needs to be saved in SD:/DJI/KML/
 
+# save Tier 1 and Tier 2 plots separately
+st_write(plots |> filter(priority == 1), file.path(datadir, "for-mapping/site-points_NY-pri1_v1.kml"), delete_dsn = TRUE)
+st_write(plots |> filter(priority == 2), file.path(datadir, "for-mapping/site-points_NY-pri2_v1.kml"), delete_dsn = TRUE)
+st_write(plots |> filter(priority == 3), file.path(datadir, "for-mapping/site-points_NY-pri3_v1.kml"), delete_dsn = TRUE)
+
+# Try saving a points KML with only the full plot name
+plots_onlyfullid = plots |>
+  dplyr::select(Name = plot_id)
+st_write(plots_onlyfullid, file.path(datadir, "for-drone-crew/KML/site-points_NY-fullname_v1.kml"), delete_dsn = TRUE)
 
 # Get the raster covering the whole area plus a 3 km buffer
 plots_dembuff_all = plots_dembuff |> st_union() |> st_transform(3310) |> st_buffer(3000) |> st_transform(4326)
