@@ -1,4 +1,4 @@
-# Code to prepare SJER candidate plot locs based on existing datasets
+# Code to prepare Eshom candidate plot locs based on existing datasets
 
 library(tidyverse)
 library(sf)
