@@ -8,7 +8,7 @@ datadir = readLines(here("data-dir.txt"), n = 1)
 
 ## Get a list of all CHM files
 
-chms = list.files(file.path(datadir, "for-drone-crew/DSM_todownscale"), pattern = "tif$", recursive = TRUE, full.names = TRUE)
+chms = list.files(file.path(datadir, "for-drone-crew/DSM_all"), pattern = "tif$", recursive = TRUE, full.names = TRUE)
 
 for(i in 1:length(chms)) {
   
@@ -16,8 +16,7 @@ for(i in 1:length(chms)) {
   
   chm = rast(chm_file)
   
-  chm = disagg(chm, fact = 2, method = "bilinear")
-  chm = disagg(chm, fact = 2, method = "bilinear")
+  chm = aggregate(chm, fact = 4)
   
   writeRaster(chm, chm_file, overwrite = TRUE)  
 }

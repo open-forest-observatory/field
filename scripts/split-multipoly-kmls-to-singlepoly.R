@@ -1,6 +1,7 @@
 # Take a folder of KMLs with multiple polygons and for each, save each as a single-polygon KML
 
 library(sf)
+library(tidyverse)
 
 indir = "/home/derek/Documents/repo-data-local/ofo-field_data/for-drone-crew/KML"
 outdir = "/home/derek/Documents/repo-data-local/ofo-field_data/for-drone-crew/KML-singlepoly"
@@ -17,6 +18,15 @@ for(i in 1:length(files)) {
   for(j in 1:nrow(d)) {
     
     poly = d[j,]
+    
+    poly = poly |>
+      mutate(Name = Name,
+             Description = Name) |>
+      select(Name, Description)
+    
+    # poly = st_cast(poly, "MULTIPOINT")
+    # 
+    # poly = st_zm(poly, drop = FALSE, what = "Z")
     
     outfile = paste0(poly$Name,".kml")
     
