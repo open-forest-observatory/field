@@ -4,7 +4,7 @@ library(sf)
 library(tidyverse)
 
 indir = "/home/derek/Documents/repo-data-local/ofo-field_data/for-drone-crew/KML"
-outdir = "/home/derek/Documents/repo-data-local/ofo-field_data/for-drone-crew/KML-singlepoly"
+outdir = "/home/derek/Documents/repo-data-local/ofo-field_data/for-drone-crew/KML-singlepoly2"
 
 files = list.files(indir, recursive = TRUE, pattern = "^site-polys")
 
