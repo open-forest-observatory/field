@@ -7,7 +7,7 @@ library(here)
 
 datadir = readLines(here("data-dir.txt"), n = 1)
 
-d = loadByProduct("DP1.10098.001", "SOAP")
+d = loadByProduct("DP1.10098.001", "WREF")
 d_apparentindividual = d$vst_apparentindividual
 d_mappingandtagging = d$vst_mappingandtagging
 
@@ -24,7 +24,7 @@ d = d |>
   
 d = st_as_sf(d, coords = c("adjDecimalLongitude", "adjDecimalLatitude"), crs = 4326)
 
-st_write(d, file.path(datadir, "field-plot-locs/soap/woody-stem-locs_2.gpkg"), delete_dsn = TRUE)
+st_write(d, file.path(datadir, "field-plot-locs/wref/woody-stem-locs_2.gpkg"), delete_dsn = TRUE)
 
 
 ### Map the lamping plot
